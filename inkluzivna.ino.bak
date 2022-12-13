@@ -1,0 +1,52 @@
+#include <CapacitiveSensor.h>
+#include <Volume.h>
+#include "pitches.h"
+
+#define SEND_PIN  4
+#define RECV_PIN  6
+#define SAMPLES   30
+#define THRESHOLD 100
+#define VOL_LO    0
+#define VOL_HI    255
+#define VOL_INC   2
+#define DELAY_MS  1
+
+CapacitiveSensor sensor = CapacitiveSensor(SEND_PIN, RECV_PIN);
+
+Volume speaker;  // pin 5
+const unsigned notes[] = {
+    NOTE_AS4, NOTE_B4,  NOTE_CS5, NOTE_DS5, NOTE_FS5, NOTE_GS5,  // G# min
+    NOTE_C5,  NOTE_D5,  NOTE_E5,  NOTE_F5,  NOTE_G5,  NOTE_A5,   // C maj
+};
+int noteCount = sizeof(notes) / sizeof(notes[0]);
+int noteIndex = 0;
+int volume = 0;
+bool isPlaying;
+
+void setup() {
+    // sensor.set_CS_AutocaL_Millis(0xFFFFFFFF);
+    speaker.begin();
+    Serial.begin(9600);
+}
+
+void loop() {
+    long value = sensor.capacitiveSensor(SAMPLES);
+    Serial.println(value);
+
+    if (value >= THRESHOLD) {
+        volume = constrain(volume+VOL_INC, VOL_LO, VOL_HI);
+        speaker.tone(notes[noteIndex], volume);
+        isPlaying = true;
+    } else {
+        volume = constrain(volume-VOL_INC, VOL_LO, VOL_HI);
+        if (volume > VOL_LO) {
+            speaker.tone(notes[noteIndex], volume);
+        } else {
+            speaker.noTone();
+            if (isPlaying) ++noteIndex %= noteCount;
+            isPlaying = false;
+        }
+    }
+
+    speaker.delay(DELAY_MS);
+}
